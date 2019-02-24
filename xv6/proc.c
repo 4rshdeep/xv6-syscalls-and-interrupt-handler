@@ -30,7 +30,7 @@ pinit(void)
   for (int i = 0; i < 64; ++i) {
     char * a = (char *) kalloc();
     a = (char*) &i;
-    initlock(&queuelock[i], (char*) &i);
+    initlock(&queuelock[i], a);
   }
   initlock(&ptable.lock, "ptable");
 }
@@ -620,7 +620,6 @@ sending(int send_pid, int recv_pid, char* msg) {
 // used by sys_recv (unicast)
 int 
 recieving(char* msg) {
-  acquire(&queuelock[recv_pid]);
 
   struct proc *curproc = myproc();
   int pid = curproc->pid;
@@ -628,13 +627,14 @@ recieving(char* msg) {
   // if receive is called first, then release the queue lock and sleep the process
   // sleep takes an address to remember how it slept the process and could be used
   // to wakeup later
+  acquire(&queuelock[pid]);
   if (recv_queue[pid].num_elems == 0) {
     recv_queue[pid].x = 1;
-    release(&queuelock[recv_pid]);
+    release(&queuelock[pid]);
     acquire(&sleeplock);
     sleep((void*)&recv_queue[pid], &sleeplock);
     release(&sleeplock);
-    acquire(&queuelock[recv_pid]);
+    acquire(&queuelock[pid]);
     recv_queue[pid].x = 0;
   }
 
@@ -647,7 +647,7 @@ recieving(char* msg) {
   recv_queue[pid].head = (hd+1)%100;
   recv_queue[pid].num_elems--;
 
-  release(&queuelock[recv_pid]);
+  release(&queuelock[pid]);
 
   return 0;
 }
