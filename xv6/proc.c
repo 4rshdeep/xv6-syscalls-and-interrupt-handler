@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// assignment code
+#include "signal.h"
+#include "handlers.c"
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -116,6 +120,11 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+  p->signal_pending = 0;
+  // init handlers
+  p->signal_handler = (sighandler_t) SIG_DFL;
+  // p->signal_handlers[1] = (sighandler_t) SIG_DFL;
 
   return p;
 }
@@ -331,6 +340,29 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   
+  ////////////////////
+  // assignment code below 
+
+  sighandler_t handler;
+  sighandler_t default_handler;
+  int original_handler_type;
+  int pending_signal;
+
+  default_handler = sigIntHandler;
+  original_handler_type = SIG_DFL;
+
+
+
+
+
+
+
+
+
+  //////////////////////
+
+
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -341,9 +373,24 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
+
+      ////////////////////
+      pending_signal = p->signal_pending;
+      if (pending_signal > 0)
+      {
+        handler = default_handler;
+        (*handler) ();
+        p->pending_signal = 0;
+
+      }
+
+      ////////////////////////
+      
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -478,14 +525,7 @@ wakeup(void *chan)
   release(&ptable.lock);
 }
 
-void custom_wakeup(int pid) {
-  struct proc *p;
-  acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->pid == pid)
-      p->state = RUNNABLE;
-  release(&ptable.lock);
-}
+
 
 // Kill the process with the given pid.
 // Process won't exit until it returns
@@ -547,6 +587,8 @@ procdump(void)
   }
 }
 
+// assignment code
+// used by the system call for ps
 void
 print_running(void)
 {
@@ -564,9 +606,10 @@ print_running(void)
   
 }
 
-
+// used by sys_send (unicast)
 int 
 sending(int send_pid, int recv_pid, char* msg) {
+  acquire(&queuelock);
 
   if (recv_queue[recv_pid].num_elems == 100) {
     cprintf("queue size full\n");
@@ -584,21 +627,33 @@ sending(int send_pid, int recv_pid, char* msg) {
   }
 
   // this wakes up if the process is in sleeping state
-  // custom_wakeup(recv_pid);
-  wakeup((void*)&recv_queue[recv_pid]);
+  if (recv_queue[recv_pid].x==1) {
+    wakeup((void*)&recv_queue[recv_pid]);
+  }
+
+  release(&queuelock);
   return 0;
 }
 
+// used by sys_recv (unicast)
 int 
 recieving(char* msg) {
+  acquire(&queuelock);
 
   struct proc *curproc = myproc();
   int pid = curproc->pid;
 
+  // if receive is called first, then release the queue lock and sleep the process
+  // sleep takes an address to remember how it slept the process and could be used
+  // to wakeup later
   if (recv_queue[pid].num_elems == 0) {
+    recv_queue[pid].x = 1;
+    release(&queuelock);
+    acquire(&sleeplock);
     sleep((void*)&recv_queue[pid], &sleeplock);
-    // curproc->state = SLEEPING; // change to sleep later
-    return -1;
+    release(&sleeplock);
+    acquire(&queuelock);
+    recv_queue[pid].x = 0;
   }
 
   int hd = recv_queue[pid].head;
@@ -610,5 +665,37 @@ recieving(char* msg) {
   recv_queue[pid].head = (hd+1)%100;
   recv_queue[pid].num_elems--;
 
+  release(&queuelock);
+
   return 0;
+}
+
+
+int
+signal(sighandler_t handler){
+    proc->signal_handler = handler;
+}
+
+int
+sigsend(int pid) {
+  struct proc *p;
+  int flag=0;
+
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p<&ptable.proc[NPROC]; p++) {
+    if (p->pid == pid)
+    {
+      flag=1;
+      break;
+    }
+  }
+
+  if (flag=0) {
+    cprintf("Could not find the process\n");
+    release(&ptable.lock);
+    return -1;
+  }
+
+  p->pending_signal = 1;
+  release(%ptable.lock);
 }

@@ -21,6 +21,7 @@ main(void)
     recv_queue[i].head = 0;
     recv_queue[i].tail = 99;
     recv_queue[i].num_elems = 0;
+    recv_queue[i].x = 0;
   }
 
   kinit1(end, P2V(4*1024*1024)); // phys page allocator

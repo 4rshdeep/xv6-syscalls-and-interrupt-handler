@@ -193,6 +193,7 @@ UPROGS=\
 	_assig1_6\
 	_assig1_7\
 	_assig1_8\
+	_test\
 
 	
 fs.img: mkfs README arr $(UPROGS)
@@ -278,6 +279,7 @@ EXTRA=\
 	assig1_6.c\
 	assig1_7.c\
 	assig1_8.c\
+	test.c\
 
 dist:
 	rm -rf dist

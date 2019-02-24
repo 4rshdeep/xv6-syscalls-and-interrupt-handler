@@ -49,6 +49,11 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // assignment code additional 
+  int signal_pending;
+  sighandler_t signal_handler;
+
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -63,6 +68,7 @@ struct queue {
  int sender_pid[100];
  int num_elems;
  int head, tail;
+ int x;
 };
 
 struct queue recv_queue[64];
