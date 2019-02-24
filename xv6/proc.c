@@ -17,6 +17,7 @@ struct {
 } ptable;
 
 static struct proc *initproc;
+struct proc *proc;
 
 int nextpid = 1;
 extern void forkret(void);
@@ -122,9 +123,6 @@ found:
   p->context->eip = (uint)forkret;
 
   p->signal_pending = 0;
-  // init handlers
-  p->signal_handler = (sighandler_t) SIG_DFL;
-  // p->signal_handlers[1] = (sighandler_t) SIG_DFL;
 
   return p;
 }
@@ -325,6 +323,25 @@ wait(void)
   }
 }
 
+void
+register_handler(sighandler_t sighandler)
+{
+  struct proc* p = myproc();
+  char* addr = uva2ka(p->pgdir, (char*)p->tf->esp);
+  if ((p->tf->esp & 0xFFF) == 0)
+    panic("esp_offset == 0");
+
+    /* open a new frame */
+  *(int*)(addr + ((p->tf->esp - 4) & 0xFFF))
+          = p->tf->eip;
+  p->tf->esp -= 4;
+
+    /* update eip */
+  p->tf->eip = (uint)sighandler;
+}
+
+
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -340,64 +357,40 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   
-  ////////////////////
-  // assignment code below 
-
-  sighandler_t handler;
-  sighandler_t default_handler;
-  int original_handler_type;
-  int pending_signal;
-
-  default_handler = sigIntHandler;
-  original_handler_type = SIG_DFL;
-
-
-
-
-
-
-
-
-
   //////////////////////
-
-
+  int pending_signal;
+  //////////////////////
 
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
-
+      
       ////////////////////
+      // proc = p;
       pending_signal = p->signal_pending;
       if (pending_signal > 0)
       {
-        handler = default_handler;
-        (*handler) ();
-        p->pending_signal = 0;
-
+        cprintf("pending_signal");
+        register_handler(p->signal_handler);
+        cprintf("pending_signal");
       }
-
       ////////////////////////
-      
-
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
       swtch(&(c->scheduler), p->context);
       switchkvm();
-
+      /////
+      p->signal_pending = 0;
+      /////
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -673,7 +666,9 @@ recieving(char* msg) {
 
 int
 signal(sighandler_t handler){
-    proc->signal_handler = handler;
+    struct proc *p = myproc();
+    p->signal_handler = handler;
+    return 0;
 }
 
 int
@@ -690,12 +685,14 @@ sigsend(int pid) {
     }
   }
 
-  if (flag=0) {
+  if (flag==0) {
     cprintf("Could not find the process\n");
     release(&ptable.lock);
     return -1;
   }
 
-  p->pending_signal = 1;
-  release(%ptable.lock);
+  p->signal_pending = 1;
+  release(&ptable.lock);
+
+  return 0;
 }

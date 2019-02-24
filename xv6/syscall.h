@@ -28,3 +28,5 @@
 #define SYS_send   26
 #define SYS_recv   27
 #define SYS_send_multi 28
+#define SYS_signal 29
+#define SYS_sigsend 30

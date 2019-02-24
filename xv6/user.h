@@ -1,3 +1,8 @@
+/// assignment code 
+#ifndef sighandler_t
+typedef void (*sighandler_t)(void);
+#endif
+
 struct stat;
 struct rtcdate;
 
@@ -30,6 +35,7 @@ int ps(void);
 int send(int, int, void*);
 int recv(void*);
 int send_multi(int, int*, void*, int);
+///////////////
 int signal(sighandler_t);
 int sigsend(int);
 
@@ -48,8 +54,3 @@ void* malloc(uint);
 void free(void*);
 int atoi(const char*);
 
-
-/// assignment code 
-#ifndef sighandler_t
-typedef void (*sighandler_t)(void);
-#endif
