@@ -37,7 +37,6 @@ int recv(void*);
 int send_multi(int, int*, void*, int);
 ///////////////
 int signal(sighandler_t);
-int sigsend(int);
 
 
 // ulib.c

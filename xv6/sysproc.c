@@ -15,6 +15,8 @@ extern int sending(int, int, char*);
 extern int recieving(char*);
 extern int signal(sighandler_t);
 extern int sigsend(int);
+extern void send_multicast(int, int, char*);
+
 
 int
 sys_fork(void)
@@ -197,19 +199,12 @@ sys_send_multi(void)
   if (argint(3, &length) < 0) {
     return -1;
   }
-
   recv_pid = (int*) recv_pid;
 
-  // cprintf("multicast called with args : \n");
-  // cprintf("sender_pid : %d\n", send_pid);
-  // cprintf("length : %d\n", length);
-
   for(int i=0; i<length; i = (i+1) ) 
-    sigsend((int)recv_pid[i]);
+    send_multicast(send_pid, (int)recv_pid[i], msg);
 
-  // cprintf("message is  : %s\n", msg);
-
-  return 1;
+  return 0;
 }
 
 int 
@@ -220,15 +215,4 @@ sys_signal(void) {
     return -1;
 
   return signal((sighandler_t) int_handler);
-}
-
-int 
-sys_sigsend(void) {
-  // cprintf("sigsend\n");
-  int pid;
-  if (argint(0, &pid) < 0)
-    return -1;
-
-  sigsend(pid);
-  return 0;
 }

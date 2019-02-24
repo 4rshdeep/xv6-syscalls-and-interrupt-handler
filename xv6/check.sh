@@ -30,7 +30,7 @@ echo "Running..8 (this will take 10 seconds)"
 ./test_assig1_long.sh assig1_8 0 arr|grep -i 'Sum of array'|sed 's/$ //g'|sort> res_assig1_8
 
 echo "Running..9 (this will take 10 seconds)"
-# ./test_assig1_long.sh assig1_8 1 arr|grep -i 'Variance of array'|sed 's/$ //g'|sort> res_assig1_9
+./test_assig1_long.sh assig1_8 1 arr|grep -i 'Variance of array'|sed 's/$ //g'|sort> res_assig1_9
 
 
 check_test=9

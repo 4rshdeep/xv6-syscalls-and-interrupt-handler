@@ -111,7 +111,6 @@ extern int sys_send(void);
 extern int sys_recv(void);
 extern int sys_send_multi(void);
 extern int sys_signal(void);
-extern int sys_sigsend(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -145,7 +144,6 @@ static int (*syscalls[])(void) = {
 [SYS_send_multi] sys_send_multi,
 //// 
 [SYS_signal] sys_signal,
-[SYS_sigsend] sys_sigsend,
 };
 
 //////////////////////////////////////////
@@ -181,7 +179,6 @@ char syscall_name[NELEM(syscalls)+1][20] =
   "recv",
   "send_multi",
   "signal",
-  "sigsend",
 };
 
 int log_calls[NELEM(syscalls)+1];

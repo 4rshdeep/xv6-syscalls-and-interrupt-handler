@@ -7,17 +7,12 @@
 #include "proc.h"
 #include "spinlock.h"
 
-// assignment code
-#include "signal.h"
-#include "handlers.c"
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
 
 static struct proc *initproc;
-struct proc *proc;
 
 int nextpid = 1;
 extern void forkret(void);
@@ -26,13 +21,17 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 struct spinlock sleeplock;
-struct spinlock queuelock;
+struct spinlock queuelock[64];
 
 void
 pinit(void)
 {
   initlock(&sleeplock, "sleeplock");
-  initlock(&queuelock, "queuelock");
+  for (int i = 0; i < 64; ++i) {
+    char * a = (char *) kalloc();
+    a = (char*) &i;
+    initlock(&queuelock[i], (char*) &i);
+  }
   initlock(&ptable.lock, "ptable");
 }
 
@@ -324,9 +323,8 @@ wait(void)
 }
 
 void
-register_handler(sighandler_t sighandler)
+register_handler(sighandler_t sighandler, struct proc *p)
 {
-  struct proc* p = myproc();
   char* addr = uva2ka(p->pgdir, (char*)p->tf->esp);
   if ((p->tf->esp & 0xFFF) == 0)
     panic("esp_offset == 0");
@@ -339,8 +337,6 @@ register_handler(sighandler_t sighandler)
     /* update eip */
   p->tf->eip = (uint)sighandler;
 }
-
-
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
@@ -356,41 +352,36 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
-  //////////////////////
-  int pending_signal;
-  //////////////////////
+  int pending_signal; 
 
   for(;;){
     // Enable interrupts on this processor.
     sti();
+
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-      
+
       ////////////////////
-      // proc = p;
       pending_signal = p->signal_pending;
-      if (pending_signal > 0)
-      {
-        cprintf("pending_signal");
-        register_handler(p->signal_handler);
-        cprintf("pending_signal");
+      if (pending_signal != 0) {
+        register_handler(p->signal_handler, p);
+        p->signal_pending = 0;
       }
       ////////////////////////
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+
       swtch(&(c->scheduler), p->context);
       switchkvm();
-      /////
-      p->signal_pending = 0;
-      /////
+
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -518,8 +509,6 @@ wakeup(void *chan)
   release(&ptable.lock);
 }
 
-
-
 // Kill the process with the given pid.
 // Process won't exit until it returns
 // to user space (see trap in trap.c).
@@ -602,7 +591,7 @@ print_running(void)
 // used by sys_send (unicast)
 int 
 sending(int send_pid, int recv_pid, char* msg) {
-  acquire(&queuelock);
+  acquire(&queuelock[recv_pid]);
 
   if (recv_queue[recv_pid].num_elems == 100) {
     cprintf("queue size full\n");
@@ -624,14 +613,14 @@ sending(int send_pid, int recv_pid, char* msg) {
     wakeup((void*)&recv_queue[recv_pid]);
   }
 
-  release(&queuelock);
+  release(&queuelock[recv_pid]);
   return 0;
 }
 
 // used by sys_recv (unicast)
 int 
 recieving(char* msg) {
-  acquire(&queuelock);
+  acquire(&queuelock[recv_pid]);
 
   struct proc *curproc = myproc();
   int pid = curproc->pid;
@@ -641,11 +630,11 @@ recieving(char* msg) {
   // to wakeup later
   if (recv_queue[pid].num_elems == 0) {
     recv_queue[pid].x = 1;
-    release(&queuelock);
+    release(&queuelock[recv_pid]);
     acquire(&sleeplock);
     sleep((void*)&recv_queue[pid], &sleeplock);
     release(&sleeplock);
-    acquire(&queuelock);
+    acquire(&queuelock[recv_pid]);
     recv_queue[pid].x = 0;
   }
 
@@ -658,7 +647,7 @@ recieving(char* msg) {
   recv_queue[pid].head = (hd+1)%100;
   recv_queue[pid].num_elems--;
 
-  release(&queuelock);
+  release(&queuelock[recv_pid]);
 
   return 0;
 }
@@ -692,7 +681,34 @@ sigsend(int pid) {
   }
 
   p->signal_pending = 1;
-  release(&ptable.lock);
+  if (p->state==SLEEPING) {
+    p->state = RUNNABLE;
+  }
 
+  release(&ptable.lock);
   return 0;
+}
+
+
+  
+void send_multicast(int send_pid, int recv_pid, char* msg)
+{
+  acquire(&queuelock[recv_pid]);
+
+  if (recv_queue[recv_pid].num_elems == 100) {
+    cprintf("queue size full\n");
+  }
+
+  recv_queue[recv_pid].tail = (recv_queue[recv_pid].tail + 1)%100;
+  // copy to buffer and add to queue
+  int tl = recv_queue[recv_pid].tail;
+  recv_queue[recv_pid].sender_pid[tl] = send_pid;
+  recv_queue[recv_pid].num_elems++;
+
+  for (int i = 0; i < 8; ++i) {
+    recv_queue[recv_pid].messages[tl][i] = *(msg+i);
+  }
+  
+  release(&queuelock[recv_pid]);
+  sigsend(recv_pid);
 }
