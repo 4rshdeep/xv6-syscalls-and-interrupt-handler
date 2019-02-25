@@ -3,4 +3,4 @@
 * Several system calls added for listing current processes etc.
 * Added Inter Process communication models, both unicast and multicast.
 * Added system calls for registering signal handlers for the user programs and signaling between processes, used in multicast model for IPC.
-* More found [here](https://github.com/4rshdeep/xv6-syscalls-and-interrupt-handler/blob/master/report.pdf)
+* Futher details can be found [here](https://github.com/4rshdeep/xv6-syscalls-and-interrupt-handler/blob/master/report.pdf)
