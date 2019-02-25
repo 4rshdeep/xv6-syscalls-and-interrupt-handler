@@ -244,6 +244,10 @@ int get_qid(int pid) {
     }
     qid++;
   }
+  // cprintf("Qid : %d\n", qid);
+  // cprintf("Pid : %d\n", pid);
+  // cprintf("Proc Pid : %d\n", p->pid);
+
   release(&ptable.lock);
   return qid;
 }
@@ -257,13 +261,15 @@ exit(void)
   struct proc *p;
   int fd;
 
-  int qid = get_qid(curproc->pid);
-  acquire(&queuelock[qid]);
-  recv_queue[qid].head = 0;
-  recv_queue[qid].tail = 99;
-  recv_queue[qid].num_elems = 0;
-  recv_queue[qid].x = 0;
-  release(&queuelock[qid]);
+
+  // cprintf("killed : %d\n", curproc->pid);
+  // int qid = get_qid(curproc->pid);
+  // acquire(&queuelock[qid]);
+  // recv_queue[qid].head = 0;
+  // recv_queue[qid].tail = 99;
+  // recv_queue[qid].num_elems = 0;
+  // recv_queue[qid].x = 0;
+  // release(&queuelock[qid]);
 
   if(curproc == initproc)
     panic("init exiting");
@@ -356,7 +362,6 @@ register_handler(sighandler_t sighandler, struct proc *p)
   *(int*)(addr + ((p->tf->esp - 4) & 0xFFF))
           = p->tf->eip;
   p->tf->esp -= 4;
-
     /* update eip */
   p->tf->eip = (uint)sighandler;
 }
