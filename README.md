@@ -7,6 +7,8 @@
 
 ## Testing
 * Several user programs have been added for the purpose of testing. Run following for running all the tests on the modified xv6. 
-```cd tests 
-bash ./tests/master_test.sh``` 
+```
+cd tests 
+bash ./master_test.sh
+``` 
 
