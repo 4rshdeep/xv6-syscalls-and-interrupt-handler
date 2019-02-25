@@ -43,17 +43,14 @@ main(int argc, char *argv[])
 	// calculate sums and send to the reciever
 	for (int i = 0; i < num_procs; i++) {
 		int pid = fork();
-		if (pid == 0)
-		{
+		if (pid == 0) {
 		
 			int start =  i*num_part;
 			int end   = (i+1)*num_part;
 			int tot=0;
-
 			for (int j = start; j < end; j++) {
 				tot += arr[j];	
 			}
-
 			send(getpid(), cur_pid, (void*) &tot);
 			exit();
 		}

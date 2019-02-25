@@ -232,6 +232,21 @@ fork(void)
   return pid;
 }
 
+int get_qid(int pid) {
+  acquire(&ptable.lock);
+  int qid = 0; 
+  struct  proc* p;
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if (p->pid == pid)
+    {
+      break;
+    }
+    qid++;
+  }
+  release(&ptable.lock);
+  return qid;
+}
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
@@ -241,6 +256,14 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+
+  int qid = get_qid(curproc->pid);
+  acquire(&queuelock[qid]);
+  recv_queue[qid].head = 0;
+  recv_queue[qid].tail = 99;
+  recv_queue[qid].num_elems = 0;
+  recv_queue[qid].x = 0;
+  release(&queuelock[qid]);
 
   if(curproc == initproc)
     panic("init exiting");
@@ -587,6 +610,9 @@ print_running(void)
   release(&ptable.lock);
   
 }
+
+
+
 
 // used by sys_send (unicast)
 int 
