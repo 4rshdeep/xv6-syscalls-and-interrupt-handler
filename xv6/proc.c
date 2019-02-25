@@ -262,7 +262,6 @@ exit(void)
   int fd;
 
 
-  // cprintf("killed : %d\n", curproc->pid);
   // int qid = get_qid(curproc->pid);
   // acquire(&queuelock[qid]);
   // recv_queue[qid].head = 0;
@@ -305,6 +304,21 @@ exit(void)
   curproc->state = ZOMBIE;
   sched();
   panic("zombie exit");
+}
+
+void
+register_handler(sighandler_t sighandler, struct proc *p)
+{
+  char* addr = uva2ka(p->pgdir, (char*)p->tf->esp);
+  if ((p->tf->esp & 0xFFF) == 0)
+    panic("esp_offset == 0");
+
+    /* open a new frame */
+  *(int*)(addr + ((p->tf->esp - 4) & 0xFFF))
+          = p->tf->eip;
+  p->tf->esp -= 4;
+    /* update eip */
+  p->tf->eip = (uint)sighandler;
 }
 
 // Wait for a child process to exit and return its pid.
@@ -351,20 +365,6 @@ wait(void)
   }
 }
 
-void
-register_handler(sighandler_t sighandler, struct proc *p)
-{
-  char* addr = uva2ka(p->pgdir, (char*)p->tf->esp);
-  if ((p->tf->esp & 0xFFF) == 0)
-    panic("esp_offset == 0");
-
-    /* open a new frame */
-  *(int*)(addr + ((p->tf->esp - 4) & 0xFFF))
-          = p->tf->eip;
-  p->tf->esp -= 4;
-    /* update eip */
-  p->tf->eip = (uint)sighandler;
-}
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.

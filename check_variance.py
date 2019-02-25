@@ -1,8 +1,8 @@
 import numpy as np
 import sys
-l = int(sys.argv[1])
+l = int(sys.argv[2])
 
-file = open("xv6/arr")
+file = open(sys.argv[1])
 lines = [int(line.strip()) for line in file.readlines()]
 
 print("total  : ", np.sum(lines[:l]))

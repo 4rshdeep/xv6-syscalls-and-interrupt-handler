@@ -11,6 +11,14 @@ void handle_message(){
 	printf(1,"%d\n",*(int*)my_message);
 	return;
 }
+// void handle_message(char *msg){
+// 	for (int i = 0; i < MSGSIZE; ++i)
+// 	{
+// 		my_message[i] = *(msg+i);
+// 	}
+// 	return;
+// }
+
 
 int
 main(int argc, char *argv[])
@@ -87,7 +95,7 @@ main(int argc, char *argv[])
 		tot_sum += *ss;
 	}
 	if(type==1){
-		int iii=10000000;
+		int iii=10000;
 		while(iii>0){
 			iii--;
 		}
@@ -107,6 +115,14 @@ main(int argc, char *argv[])
 		variance = variance/(float)size;
 	}
   	
+
+
+
+
+
+
+
+
 
   	//------------------
 
