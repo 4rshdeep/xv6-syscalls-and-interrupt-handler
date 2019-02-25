@@ -72,4 +72,4 @@ struct queue {
  int x;
 };
 
-struct queue recv_queue[64];
+struct queue recv_queue[200];

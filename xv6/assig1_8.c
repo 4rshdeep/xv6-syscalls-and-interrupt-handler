@@ -4,11 +4,12 @@
 
 #define MSGSIZE 8
 #define NUM_PROCS 4
-
+int interrupt_flag = 0;
 char master_message[MSGSIZE];
 
 void handler(){
     recv(master_message);
+    interrupt_flag = 1;
     return;
 }
 
@@ -43,7 +44,7 @@ main(int argc, char *argv[])
     close(fd);
     // this is to supress warning
     printf(1,"first elem %d\n", arr[0]);
-  
+    ps();
     //----FILL THE CODE HERE for unicast sum and multicast variance
     
     int parent_id = getpid();
@@ -67,7 +68,13 @@ main(int argc, char *argv[])
             send(getpid(),parent_id,(void*)msg_child);
             if(type==0) exit();
 
-            sleep(getpid());
+            // sleep(getpid());
+            while(1){
+                if(interrupt_flag==1){
+                    break;
+                }
+                printf(1, "");
+            }
             for(int j=start; j<end; j++){
                 float temp = (arr[j] - *(float*)master_message);
                 var += temp*temp;
